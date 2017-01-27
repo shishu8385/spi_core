@@ -53,9 +53,8 @@ module spi_v2(
 	reg sck_t,sckn_t;
 	wire sck_s;
 	reg clk_align;
-	reg tx_en,tx_load,rx_en,rx_load,rx_load_d,tx_load_d;
+	reg tx_load,rx_load,rx_load_d,tx_load_d;
 	wire tx_load_s,rx_load_s;
-	reg start_rst;
 	wire start_lth;
 	reg ss_d;
 /////////////////////////////////////////////////////////////////	
@@ -64,8 +63,6 @@ module spi_v2(
 			ss_d		<=1'b1;
 			rx_load	<=1'b0;
 			tx_load	<=1'b0;
-			tx_en		<=1'b0;
-			rx_en		<=1'b0;
 			clk_align<=1'b0;
 			state<=IDLE;
 		end else begin
@@ -74,24 +71,20 @@ module spi_v2(
 				ss_d		<=1'b1;
 				rx_load	<=1'b0;
 				tx_load	<=1'b0;
-				tx_en		<=1'b0;
-				rx_en		<=1'b0;
 				clk_align<=1'b1;
 				if(start_lth) begin
 					state		<=SCKALIGN;
+					tx_load	<=1'b1;
 				end else begin
 					state		<=IDLE;
 				end
 			end
 			SCKALIGN: begin
 				clk_align<=1'b0;
-				tx_load	<=1'b1;
 				state<=START;
 			end
 			START: begin
 				ss_d		<=1'b0;
-				tx_en		<=1'b1;
-				rx_en		<=1'b1;
 				tx_load	<=1'b1;
 				clk_align<=1'b1;
 				count<=0;
@@ -129,12 +122,12 @@ module spi_v2(
 	assign start_lth=start_reg==2'b01;
 	/////////////////////////////RX and TX shift registers////////////////////////////////
 	//////////////////TX/////////////////////////////
-	always@(negedge sck_s or posedge tx_load_s) begin :tx_shifter
-		if(tx_load_s) begin
-				tx_buff<=txdata_i;
+	always@(negedge sck_s or negedge rst_i) begin :tx_shifter
+		if(~rst_i) begin
+			tx_buff<=0;
 		end else begin
 			if(tx_load_s) begin
-				
+				tx_buff<=txdata_i;	
 			end else begin
 				tx_buff<={1'b0,tx_buff[DATA_SIZE-1:1]};
 				mosi_o<=tx_buff[0];
@@ -169,7 +162,6 @@ module spi_v2(
 		end
 	end
 	//////////////////////////Clock selectors//////////////////////////////////////////////////
-	assign S = cpol_i ^ cpha_i;
 	BUFGMUX BUFGMUX_sck_s (
 		.O		(sck_s),
 		.I0	(sckn_t),
