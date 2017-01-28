@@ -63,7 +63,7 @@ module spi_v2(
 			ss_d		<=1'b1;
 			rx_load	<=1'b0;
 			tx_load	<=1'b0;
-			clk_align<=1'b0;
+			//clk_align<=1'b0;
 			state<=IDLE;
 		end else begin
 			case (state)
@@ -71,7 +71,7 @@ module spi_v2(
 				ss_d		<=1'b1;
 				rx_load	<=1'b0;
 				tx_load	<=1'b0;
-				clk_align<=1'b1;
+				//clk_align<=1'b1;
 				if(start_lth) begin
 					state		<=SCKALIGN;
 					tx_load	<=1'b1;
@@ -80,18 +80,20 @@ module spi_v2(
 				end
 			end
 			SCKALIGN: begin
-				clk_align<=1'b0;
-				state<=START;
+				//clk_align<=1'b0;
+				if(sckn_t) begin
+					state<=START;
+				end
 			end
 			START: begin
 				ss_d		<=1'b0;
 				tx_load	<=1'b1;
-				clk_align<=1'b1;
+				//clk_align<=1'b1;
 				count<=0;
 				state<=REST;
 			end
 			REST: begin
-				clk_align<=1'b1;
+				//clk_align<=1'b1;
 				tx_load	<=1'b0;
 				if(count<MAX_COUNT-1) begin
 					count<=count+1;
@@ -152,13 +154,13 @@ module spi_v2(
 	//////////////////////////////////////////////////////////////////////////////////////////
 	
 	////////////////////////////SCK generator/////////////////////////////////////////////////
-	always@(posedge clk_i or negedge clk_align) begin
-		if(~clk_align) begin
+	always@(posedge clk_i or negedge rst_i) begin
+		if(~rst_i) begin
 			sck_t<=1'b0;
 			sckn_t<=1'b1;
 		end else begin
 			sck_t<=~sck_t;
-			sckn_t<=~sckn_t;
+			sckn_t<=sck_t;
 		end
 	end
 	//////////////////////////Clock selectors//////////////////////////////////////////////////
